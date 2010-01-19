@@ -1,0 +1,179 @@
+
+This algorithm is an implementation of the non-adaptive generational genetic algorithm, applied to the Travelling 
+salesman problem. It can work both by selecting the individuals from the mating pool for the next generation (this 
+means that a single individual may be copied more than once), or by eliminating them (a single individual will 
+have at most a single copy within the mating pool). It can also apply elitism while finding a solution.<br/>
+The problem statement is the following: Given a number of cities and the costs of traveling from any city to 
+any other city, what is the least-cost round-trip route that visits each city exactly once and then returns to 
+the starting city? One can easily observe that the size of the solution space is (n - 1)! / 2 where n is the 
+number of cities. Brute force algorithms applied to this problem thus have factorial complexity - brute force 
+search applied to a problem with a few dozen cities may easily take longer to end than the expected lifetime of 
+the universe.<br/>
+The representation for the solution is a permutation of city indices. It can easily be seen that this yields in 
+more than one representation for the same solution of the problem - for instance, if the permutation [1, 4, 3, 2] 
+represents the shortest trip between four cities, than so do [4, 3, 2, 1], [3, 2, 1, 4] and [2, 1, 4, 3], as do their 
+mirrored variants. This is, however, ignored, because the solution space grows much faster than does the number 
+of these representations of the same solution, and wise choice of operators can eliminate the effect of 
+increase in search space.<br/>
+Note that implementation takes care of the fact that the permutations are actually cyclic - the term subsequence 
+describes sequences that, for instance, start with the last and end with the first element. This is taken into 
+consideration while designing crossover and mutation operators.<br/>
+Fitness function is simply the sum of the distances between the neighbouring cities in the permutation. The 
+fitness value can be calculated straightforward with a single pass through the individual.<br/>
+Algorithm starts by selecting a random set of permutations that serve as the initial population. A specified 
+number of generations is then performed. In each generation, the mean fitness value is found, as well as the 
+standard deviation of the fitness. Goldberg's sigma scaling is then applied to construct the quality scale of 
+the solutions (see [1]). In case of generational selection, the stochastic universal sampling algorithm is used, 
+while in the case of eliminational selection, the standard roulette wheel algorithm is used (although SUS is said 
+to be better, it is questionable whether or not it is applicable to eliminational selection) to select the parents. 
+Once the parents have been placed into the mating pool, pairs of parents are randomly chosen to create offspring. 
+Finally, mutation is applied to each generated offspring with a certain probability.<br/>
+This is repeated for the number of generations specified, or until the solution with the specified expected cost 
+is found, in which case the run is considered successful.<br/>
+<br/>
+
+
+<h4>Crossover operators</h4>
+The crossover operators generally have a lower impact on the performance and convergence of the algorithm than 
+mutation operators do, and this can be easily observed. However, there are some differences between the operators 
+and their strengths and weaknesses are documented in the following subsections.
+<p><img src='hr/fer/zemris/ga_framework/algorithms/tsp/pics/generational_crossover_graph.png'/></p>
+
+<h5>Edge crossover</h5>
+According to the experiments, this is often the best crossover operator for this type of problem, in terms 
+of the number of iterations needed to reach the solution. The reason for this is that it's specially designed to 
+exploit the similarities between the parents (in terms of common edges).<br/>
+The operator starts by creating an edge table. This table maps each element to the list of adjacent elements in 
+both parents. If an element is adjacent in both parents, this is indicated in the table. 
+A random element is then selected, and it's occurences are removed from the edge table. This element is placed 
+into the child, and it's list in the edge table is examined. The element with most occurences is selected next, 
+and the procedure repeated for the next empty position in the child. In case of reaching the empty list, the 
+procedure is repeated in the opposite direction. In case of reaching an empty list once more, a new element is 
+selected at random, and the whole process repeated again, until the entire child solution is constructed.<br/>
+This operator is specifically constructed for adjacency type problems, hence it's performance in terms of the 
+number of needed iterations to reach the solution. Due to it's complexity, however, it is outperformed by most 
+other crossover operators listed here. See [1] for more information.
+
+<h5>Order crossover</h5>
+Order crossover is much faster than the edge crossover, but is constructed for order-based problems. It starts 
+by copying a random segment of the first parent into the child, and then continues position by position through 
+the child copying yet uncopied elements of the second parent.<br/>
+Although it reaches solution in a somewhat greater number of iterations, it's speed is the reason it should be 
+used instead of the edge crossover.
+
+<h5>Greedy subtour crossover (GSX)</h5>
+This operator, described in [2], acquires the longest possible sequence of parents' subtours. It starts by 
+selecting a random element in the first parent, finds the element in the second parent, and then continues 
+by alternating copying of yet uncopied elements of the first parent on one side of the child, and elements 
+from the second parent on the other side of the child.<br/>
+It is comparable to order crossover in speed, but seems to need more iterations to reach a solution. This may 
+be problem dependent.
+
+<h5>Partially mapped crossover (PMX)</h5>
+Originally proposed by Goldberg and Lingle, the version used here is that of Whitley. PMX begins by copying a 
+randomly selected segment of the first parent into the child. It then searches the same segment within the 
+second parent to find those elements 'i' that have not yet been copied. For each such element 'i', it looks 
+which element 'j' has been copied in it's place from the first parent and then copies the element 'i' into 
+that position in the child that the element 'j' occupies in the second parent. If the position in question 
+is not free (in the child), the element occupying that position becomes element 'j', and the process is 
+repeated. Once the segment in the second parent has been scanned, the rest of the elements in the second 
+parent are copied (in order) to the free places in the child (starting from the position after the segment). 
+For more information and examples, one should look into [1].<br/>
+This operator is intended for adjacency-type problems, and is often used in TSP. It's observed performance, 
+however, is smaller than that of edge crossover, but comparable to order crossover and GSX.
+
+<h5>Cycle crossover</h5>
+Cycle crossover is intended for problems where absolute ordering of the elements is crucial. This is obviously 
+not the case with TSP, and experiments confirm this. In the chosen representation, information is kept in the 
+relative ordering of the elements ([4, 3, 2, 1] is the same as [3, 2, 1, 4]), and this is probably the reason 
+for this operator's lower performance. See [1] for information on how this operator works.
+
+<h5>One point partial preservation crossover (1-PPP)</h5>
+One point partial preservation crossover copies a part of the first parent into the child. It proceeds by 
+copying the rest of the elements, but in the order in which they appear in the second parent. For instance, 
+permutations [1 2 3 4 5] and [5 2 1 3 4] give the offspring [1 2 5 3 4] (when crossover point is 2).
+<br/>
+<br/>
+
+
+
+<h4>Mutation operators</h4>
+Mutation operators deserve more attention, since they seem to have a greater influence on the convergence of the 
+algorithm. The number of needed iterations, as well as the probability of finding the solution depends 
+heavily on the choice of the mutation operator. Four classic mutation operators have thus been implemented, a new 
+operator called shift mutation, along with it's heuristic variants, as well as a new '2 opt' operator inspired by 
+Sengoku and Yoshihara's work (see [2]).<br/>
+Mutation operators are important, because, they define whether or not the fitness function is 'continuous' - does 
+a mutation yield an individual whose fitness differs only slightly, or the difference is huge. Principally, 
+operator whose offspring experiences smaller change in fitness performs better. Another important feature of the 
+operator is the number of mutations that must occur to increase the fitness of the individual - ideally, this 
+number should be small in as many cases as possible, as this improves the chances of escaping the local optimum. 
+Inversion mutation is a good example of such an operator.
+<p><img src='hr/fer/zemris/ga_framework/algorithms/tsp/pics/generational_mutation_graph.png'/></p>
+
+<h5>Swap mutation</h5>
+Swap mutation, probably the simplest of all mutations, simply randomly selects two elements of the permutation 
+and exchanges their position. Although this might at first sight seem like a small change to an individual, 
+it results in great fitness changes in most cases, reducing this operator's applicability.
+
+<h5>Scramble mutation</h5>
+This operator randomly selects a subsequence within a permutation and scrambles all the elements in that 
+subsequence. This almost always results in great changes in fitness, and large jumps in solution space, thus 
+making this operator pretty useless for larger problems (i.e. greater number of cities). This is a typical 
+example of an operator for which the fitness function is 'not continuous'.
+
+<h5>Inversion mutation</h5>
+Of the 4 classic mutation operators described in [1], inversion mutation gives the genetic algorithm the best 
+performance. When using this operator, genetic algorithm has the lowest observed tendency to get stuck in local 
+optima. The reason for this can be understood after examining the 2 opt mutation described later on.<br/>
+Operator works by selecting a subsequence within the permutation, and inverting the order of the elements between. 
+For instance, the permutation [4, 5, 1, 2, 3, 6] becomes [4, 2, 1, 5, 3, 6] after inverting the subsequence 
+from the second to the fourth element.
+
+<h5>Insert mutation</h5>
+Insert mutation works by randomly selecting two elements and pushing the second element until it becomes adjacent 
+with the first. E.g. permutation [6, 1, 2, 4, 3, 5] becomes [6, 1, 5, 2, 4, 3] after selecting the second and the 
+sixth element.<br/>
+It works better than swap and scramble mutations, but is outperformed by the inversion mutation.
+
+<h5>Shift mutation</h5>
+Shift mutation works similarily to the insert mutation, but instead of pushing a single element through the permutation, 
+it chooses a random interval within the permutation, and pushes it through it. It's significance can be observed 
+when combining it with other operators, namely inversion and 2 opt, as it can help them escape local optima.
+
+<h5>GShift mutation</h5>
+GShift or greedy shift mutation works in a similar fashion as does the shift mutation. The only difference is that when 
+this mutation chooses the interval to move around, it moves it through the permutation so that the first city in the 
+interval is closer to it's new neighbour than it was to it's old neighbour. If this is not possible, then this mutation 
+operator chooses a random destination, as does the shift mutation. It's observed performance is higher than that of the 
+shift mutation.
+
+<h5>2 opt mutation</h5>
+Finally, algorithm using the 2 opt mutation works better than by using any of the above mentioned operators. This 
+operator is based on the 2 opt heuristic used for Travelling salesman problem - the 2 opt heuristic itself is a 
+greedy algorithm that does not always find the solution, but often finds a local optimum.
+<p><img src='hr/fer/zemris/ga_framework/algorithms/tsp/pics/2opt1.png'/></p>
+Given some suboptimal solution, 2 opt heuristic first finds two edges in the permutation, one from city A to city 
+B, and the other from city C to city D, such that the distance from city A to city B is greater than the distance 
+from city A to city C, and that distance from city C to city D is greater than that between cities C and B. Once 
+such a pair of edges has been found, the order of elements between cities B and C (inclusively) is inverted. The 
+resulting permutation always has a lower round-trip cost (see figure).
+<p><img src='hr/fer/zemris/ga_framework/algorithms/tsp/pics/2opt2.png'/></p>
+2 opt heuristic repeats this procedure until such a pair of edges can no longer be found. This, in the end, results 
+with a permutation that is sometimes optimal, and sometimes suboptimal. It can thus be shown that the suboptimal 
+individual may very often (almost always) be improved with a simple, yet specific inversion.<br/>
+The 2 opt mutation chooses a random edge AB, and a random edge CD. It then checks edge CD and all subsequent edges 
+to see if they are in the required relation with the edge AB. If no such edge is found, a simple swap mutation is 
+performed, thus preserving the randomness of the mutation operator to some extent. If such an edge is found, 2 opt 
+is performed, but only once. The idea is to prevent premature convergence.<br/>
+It is now obvious why inversion mutation works so well - it performs the inversion that sometimes leads to a better 
+solution. Other operators must be applied more than once to achieve the same effect. In other words, inversion 
+has (mutation-wise) a lower number of local optima (at least in the 'area' around the global optimum), while other 
+mutation operators have more.
+<br/>
+<br/>
+
+
+
+
+

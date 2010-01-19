@@ -1,0 +1,35 @@
+
+Evolutionary Computing IDE TODO list:
+-------------------------------------
+
+--1) Create additional view for browsing all jobs that are currently running.
+--2) Create a button in Algorithm Editor toolbar for showing extensive algorithm info.
+--3) Create an editor used for showing extensive algorithm info.
+--4) Create an editor for showing graphs.
+--5) Add Edit menu, undo, redo.
+--6) Add Load algorithm, Save editor to File menu, etc.
+--7) Destroy timer when closing algorithm editor.
+--8) Bug with chart displaying - a thread prevents exit.
+--9) Center OK, Cancel buttons in ISerializable dialog.
+--10) Open map by default in cities editor.
+--11) Double click and 'enter' key edit parameter ranges in algorithm scheduler.
+--12) Estimated running time in job browser.
+--13) Disable buttons in Algorithm Explorer when they are inappropriate.
+--14) Add button to Algorithm Explorer for extensive algorithm info.
+--15) Add popup menu to tree in Algorithm Explorer.
+--16) Add pending jobs functionality.
+--17) Add 'Import city list from file' to tsp problem definition.
+18) Add docs dir, and add html readme files into that dir.
+--19) Add dialog warning about active jobs when exiting.
+--20) Add about dialog - program name, version, author, supervisors, organization, used techs, used icon sets, system info, left banner
+--21) Add 'Install algorithm dialog'.
+--22) Add PMX and cycle crossover to travelling salesman problem, and update docs.
+--23) Add Generational TSP.
+--24) Add Adaptive Tournament TSP.
+--25) Add standard deviation return value handler.
+--26) Add sum return value handler.
+27) Improve graph editor - trace names, last dot, range specifying etc.
+--28) Add 1-PPP operator.
+--29) Describe shift operator.
+30) Pause, resume algorithm.
+31) Algorithm interaction.

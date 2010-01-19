@@ -1,0 +1,180 @@
+
+This is an adaptive tournament selection genetic algorithm applied to the Travelling salesman problem. 
+The problem statement is the following: Given a number of cities and the costs of traveling from any city to 
+any other city, what is the least-cost round-trip route that visits each city exactly once and then returns to 
+the starting city? One can easily observe that the size of the solution space is (n - 1)! / 2 where n is the 
+number of cities. Brute force algorithms applied to this problem thus have factorial complexity - brute force 
+search applied to a problem with a few dozen cities may easily take longer to end than the expected lifetime of 
+the universe.<br/>
+The representation for the solution is a permutation of city indices. It can easily be seen that this yields in 
+more than one representation for the same solution of the problem - for instance, if the permutation [1, 4, 3, 2] 
+represents the shortest trip between four cities, than so do [4, 3, 2, 1], [3, 2, 1, 4] and [2, 1, 4, 3], as do their 
+mirrored variants. This is, however, ignored, because the solution space grows much faster than does the number 
+of these representations of the same solution, and wise choice of operators can eliminate the effect of 
+increase in search space.<br/>
+Note that implementation takes care of the fact that the permutations are actually cyclic - the term subsequence 
+describes sequences that, for instance, start with the last and end with the first element. This is taken into 
+consideration while designing crossover and mutation operators.<br/>
+Fitness function is simply the sum of the distances between the neighbouring cities in the permutation. The 
+fitness value can be calculated straightforward with a single pass through the individual.<br/>
+Algorithm starts by selecting a random set of permutations that serve as the initial population. A specified 
+number of iterations is then performed, and in each iteration a tournament selection is performed - tournament 
+size solutions are randomly selected, a few of the worst among them are eliminated and replaced by applying 
+crossover to surviving members of the tournament. Mutation is then applied with a certain probability. This 
+is repeated for the number of iterations specified, or until the solution with the specified expected cost 
+is found.<br/>
+The algorithm may also exhibit some adaptive behaviour, for instance change the mutation operator after a 
+certain number of iterations without improvement in fitness have elapsed. This is described in detail in the 
+following sections.
+<br/>
+<br/>
+
+
+<h4>Adaptation mechanisms</h4>
+This algorithm offers a wide range of adaptation mechanisms, more or less successful in increasing the performance 
+of the algorithm. Some offer a slight increase in performance, while others allow the algorithm to escape local 
+optima during the search. Others seem to have no practical use, at least in this form.
+
+<h5>Mutation probability varying</h5>
+This method simply tracks the number of iterations of the algorithm that have passed since the last observed 
+improvement in fitness. If the number of iterations since improvement exceeds the adaptation period, mutation 
+probability is increased by predefined value. On the other hand, if the number of iterations since improvement 
+is zero, that is, if the increase in fitness has just occured, mutation probability is decreased by eight times 
+the predefined value, but not below the initial mutation probability.
+
+<h5>Adaptive operator cycling</h5>
+Adaptive operator cycling gets triggered when the counter of iterations exceeds the 
+adaptation period. This mechanism then proceeds by calculating the ratio of successful to all mutations. A value is 
+value cos(ratio * Pi) / 2 + 0.5 is then calculated, and is used as probability to change the operator. 
+Once the next operator from the prespecified mutation operator cycle is chosen, the process is repeated. 
+The effectiveness of this method depends on wise choice of mutation operators, while, in turn, 
+this choice may be problem-specific. In particular, shift mutation seems to go hand in hand with inversion mutation.<br/>
+A local optimum is defined in [3] as the point in solution space where the no chain of mutations can lead to an increase 
+in fitness without first leading to a decrease in fitness. Once the search gets stuck in a local optimum, the change 
+of the mutation operator changes the fitness landscape, thus allowing the search to proceed in search of a global 
+optimum. Of course, every problem instance has a different fitness landscape, so the choice of mutation operators 
+should be made adaptively, as it is in this method.
+
+<h5>Adaptive operator cycling 2</h5>
+This mechanism is similar to the adaptation operator cycling, but performs the adaptation only if there is no 
+improvement in fitness longer than is the adaptation period.
+
+<h5>Mutation operator statistics</h5>
+This method monitors the effectiveness of each mutation operator used. It starts by setting the equal probability 
+of choosing any of the prespecified mutation operators. After the adaptation period has elapsed, it assigns the 
+probability to use a certain operator to the value proportional to the percentage of successful mutations since the 
+last adaptation.
+
+<h5>Population migrations</h5>
+Population migrations mechanism works by keeping separate populations, and using only a certain mutation operator 
+within each population. After the adaptation period, a number of random individuals are selected from within each 
+population and placed within a migration pool. They are then randomly distributed between populations.<br/>
+Unfortunately, this method often leads to premature convergence once an individual from a highly evolved population 
+is placed into a less evolved one. In the current form, this method isn't particularly effective.
+<br/>
+<br/>
+
+
+<h4>Crossover operators</h4>
+The crossover operators generally have a lower impact on the performance and convergence of the algorithm than 
+mutation operators do, and this can be easily observed. Since this document focuses on the adaptive mechanisms, 
+user is recommended to read more about order, edge, cycle and partially mapped crossover in [1]. It is sufficient 
+to say that cycle crossover is outperformed by all other operators, since it ignores the fact that, for instance, 
+permutations [1, 2, 3, 4] and [4, 3, 2, 1] in fact represent the same solution (in our limited TSP definition). 
+Edge crossover usually outperforms all other operators, but is somewhat complex and slow. Order, GSX and PMX are thus 
+recommended.
+
+
+<h5>Greedy subtour crossover (GSX)</h5>
+This operator, described in [2], acquires the longest possible sequence of parents' subtours. It starts by 
+selecting a random element in the first parent, finds the element in the second parent, and then continues 
+by alternating copying of yet uncopied elements of the first parent on one side of the child, and elements 
+from the second parent on the other side of the child.<br/>
+It is comparable to order crossover in speed, but seems to need more iterations to reach a solution. This may 
+be problem dependent.
+
+<h5>One point partial preservation crossover (1-PPP)</h5>
+One point partial preservation crossover copies a part of the first parent into the child. It proceeds by 
+copying the rest of the elements, but in the order in which they appear in the second parent. For instance, 
+permutations [1 2 3 4 5] and [5 2 1 3 4] give the offspring [1 2 5 3 4] (when crossover point is 2).
+<br/>
+<br/>
+
+
+<h4>Mutation operators</h4>
+Mutation operators deserve more attention, since they seem to have a greater influence on the convergence of the 
+algorithm. The number of needed iterations, as well as the probability of finding the solution depends 
+heavily on the choice of the mutation operator. Four classic mutation operators have thus been implemented, a new 
+operator called shift mutation, along with it's heuristic variants, as well as a new '2 opt' operator inspired by 
+Sengoku and Yoshihara's work (see [2]).<br/>
+Mutation operators are important, because, they define whether or not the fitness function is 'continuous' - does 
+a mutation yield an individual whose fitness differs only slightly, or the difference is huge. Principally, 
+operator whose offspring experiences smaller change in fitness performs better. Another important feature of the 
+operator is the number of mutations that must occur to increase the fitness of the individual - ideally, this 
+number should be small in as many cases as possible, as this improves the chances of escaping the local optimum. 
+Inversion mutation is a good example of such an operator.<br/>
+Lastly, what is a local optimum for one operator, may not be a local optimum for another. This is specific for 
+permutation based representations, and can be easily observed by comparing, for instance, insert and inversion 
+mutation. Often does a search with one operator get stuck with individuals that would easily be improved by 
+another. This is investigated within this algorithm in the form of adaptiveness, and is described later.<br/>
+To find out more about swap, scramble, inversion and insert mutation, see [1]. Of the four classic mutation operators 
+for permutation problems, inversion has by far the best performance, because of it's similarity with the 2 opt 
+heuristic.
+
+<h5>2-inversion mutation</h5>
+This operator merely selects 2 adjacent intervals within the permutation and inverts them separately. It works 
+better than swap or scramble mutation, but is outperformed by the pure inversion operator. It is included here 
+for experimental purposes only.
+
+<h5>Shift mutation</h5>
+Shift mutation works similarily to the insert mutation, but instead of pushing a single element through the permutation, 
+it chooses a random interval within the permutation, and pushes it through it. It's significance can be observed 
+when combining it with other operators, namely inversion and 2 opt.
+
+<h5>MultiShift mutation</h5>
+Multishift mutation simply performs the shift mutation several times.
+
+<h5>SwapSeg mutation</h5>
+Instead of choosing and swapping two elements of the permutation, this mutation swaps to subsegments of the permutation. 
+It is much more effective than the swap mutation, but less effective than inversion.
+
+<h5>GShift mutation</h5>
+GShift or greedy shift mutation works in a similar fashion as does the shift mutation. The only difference is that when 
+this mutation chooses the interval to move around, it moves it through the permutation so that the first city in the 
+interval is closer to it's new neighbour than it was to it's old neighbour. If this is not possible, then this mutation 
+operator chooses a random destination, as does the shift mutation. It's observed performance is higher than that of the 
+shift mutation, although there can be no doubt that there exist problem instances for which this is not true.
+
+<h5>2 opt mutation</h5>
+Algorithm using the 2 opt mutation works better than by using any of the above mentioned operators. This 
+operator is based on the 2 opt heuristic used for Travelling salesman problem - the 2 opt heuristic itself is a 
+greedy algorithm that does not always find the solution, but often finds a local optimum.
+
+<p><img src='hr/fer/zemris/ga_framework/algorithms/tsp/pics/2opt1.png'/></p>
+
+Given some suboptimal solution, 2 opt heuristic first finds two edges in the permutation, one from city A to city 
+B, and the other from city C to city D, such that the distance from city A to city B is greater than the distance 
+from city A to city C, and that distance from city C to city D is greater than that between cities C and B. Once 
+such a pair of edges has been found, the order of elements between cities B and C (inclusively) is inverted. The 
+resulting permutation always has a lower round-trip cost (see figure).
+
+<p><img src='hr/fer/zemris/ga_framework/algorithms/tsp/pics/2opt2.png'/></p>
+
+2 opt heuristic repeats this procedure until such a pair of edges can no longer be found. This, in the end, results 
+with a permutation that is sometimes optimal, and sometimes suboptimal. It can thus be shown that the suboptimal 
+individual may very often (almost always) be improved with a simple, yet specific inversion.<br/>
+The 2 opt mutation chooses a random edge AB, and a random edge CD. It then checks edge CD and all subsequent edges 
+to see if they are in the required relation with the edge AB. If no such edge is found, a simple swap mutation is 
+performed, thus preserving the randomness of the mutation operator to some extent. If such an edge is found, 2 opt 
+is performed, but only once. The idea is to prevent premature convergence.<br/>
+It is now obvious why inversion mutation works so well - it performs the inversion that sometimes leads to a better 
+solution. Other operators must be applied more than once to achieve the same effect. In other words, inversion 
+has (mutation-wise) a lower number of local optima (at least in the 'area' around the global optimum), while other 
+mutation operators have more.
+<br/>
+<br/>
+
+
+
+
+

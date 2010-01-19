@@ -1,0 +1,197 @@
+<?xml version="1.0" encoding="utf-8"?>
+<project name="ga_framework" basedir="." default="all">
+
+	<!-- property file -->
+	<property file="global.conf"/>
+	
+	<property name="debug" value="off"/>
+	
+	<property name="apidir" value="api"/>
+	<property name="guibin" value="bin"/>
+	<property name="guidir" value="gui"/>
+	<property name="libdir" value="${dir.libs}"/>
+	<property name="tmpdir" value="${dir.tmp}"/>
+	<property name="algodir" value="${dir.algos}"/>
+	<property name="picsdir" value="${dir.pics}"/>
+	<property name="docsdir" value="${dir.docs}"/>
+	<property name="tspdir" value="TSP"/>
+	<property name="automatadir" value="Automata"/>
+	
+	<property name="src_path" value="${basedir}/src"/>
+	<property name="api_path" value="${src_path}/${apidir}"/>
+	<property name="gui_path" value="${src_path}/${guidir}"/>
+	<property name="algos_tsp_path" value="${src_path}/${algodir}/${tspdir}"/>
+	<property name="algos_automata_path" value="${src_path}/${algodir}/${automatadir}"/>
+	<property name="pics_path" value="${basedir}/${picsdir}"/>
+	<property name="docs_path" value="${basedir}/${docsdir}"/>
+	<property name="build_path" value="${basedir}/build"/>
+	
+	<property name="guilib" value="gui.jar"/>
+	<property name="apilib" value="api.jar"/>
+	<property name="algos_tsp_lib" value="algos_tsp.jar"/>
+	<property name="algos_automata_lib" value="algos_automata.jar"/>
+	
+	<path id="libs.classpath">
+		<fileset dir="${libdir}">
+			<include name="**/*.jar"/>
+			<exclude name="**/swt.jar"/>
+			<exclude name="**/swt-debug.jar"/>
+		</fileset>
+	</path>
+	<pathconvert property="classpath-string" pathsep=" ">
+		<path refid="libs.classpath"/>
+		<chainedmapper>
+			<flattenmapper/>
+			<globmapper from="*" to="lib/*"/>
+		</chainedmapper>
+	</pathconvert>
+	
+	<!-- check input flags, assign variables accordingly -->
+	<condition property="swtlib" value="swt-debug.jar" else="swt.jar">
+		<and>
+			<equals arg1="${debug}" arg2="on"/>
+		</and>
+	</condition>
+	
+	
+	<target name="init">
+		<mkdir dir="${build_path}"/>
+		<mkdir dir="${build_path}/${apidir}"/>
+		<mkdir dir="${build_path}/${guidir}"/>
+		<mkdir dir="${build_path}/${guidir}/${guibin}"/>
+		<mkdir dir="${build_path}/${guidir}/${algodir}"/>
+		<mkdir dir="${build_path}/${guidir}/${algodir}/${tspdir}"/>
+		<mkdir dir="${build_path}/${guidir}/${algodir}/${automatadir}"/>
+		<mkdir dir="${build_path}/${guidir}/${libdir}"/>
+		<mkdir dir="${build_path}/${guidir}/${docsdir}"/>
+		<mkdir dir="${build_path}/${guidir}/${tmpdir}"/>
+		
+		<!-- copy properties files -->
+		<copy file="global.conf" todir="${build_path}/${guidir}/"/>
+		<copy file="user.conf" todir="${build_path}/${guidir}/"/>
+		<copy file="gui.bat" todir="${build_path}/${guidir}"/>
+		<copy file="gui.sh" todir="${build_path}/${guidir}"/>
+	</target>
+	
+	<target name="clean">
+		<delete includeemptydirs="true">
+			<fileset dir="${build_path}/${apidir}" excludes="**/*.jar"/>
+		</delete>
+		<delete includeemptydirs="true">
+			<fileset dir="${build_path}/${guidir}/${algodir}" excludes="**/*.jar"/>
+		</delete>
+		<delete includeemptydirs="true">
+			<fileset dir="${build_path}/${guidir}/${guibin}"/>
+		</delete>
+	</target>
+	
+	<target name="delete">
+		<delete dir="${build_path}"/>
+	</target>
+	
+	<target name="api" depends="init">
+		<!-- compile api files -->
+		<javac srcdir="${api_path}" destdir="${build_path}/${apidir}" debug="${debug}"
+			debuglevel="source,lines,vars">
+			<classpath refid="libs.classpath"/>
+		</javac>
+		
+		<!-- delete old api jar if any -->
+		<delete file="${build_path}/${apidir}/${apilib}"/>
+		
+		<!-- create api jar in api dir -->
+		<jar destfile="${build_path}/${apidir}/${apilib}" basedir="${build_path}/${apidir}"/>
+	</target>
+	
+	<target name="algos_tsp" depends="api">
+		<!-- compile algo files -->
+		<javac srcdir="${algos_tsp_path}" destdir="${build_path}/${guidir}/${algodir}/${tspdir}" 
+			debug="${debug}" debuglevel="source,lines,vars">
+			<classpath path="${build_path}/${guidir}/${libdir}/${apilib}"/>
+			<classpath path="${build_path}/${guidir}/${libdir}/${swtlib}"/>
+			<classpath refid="libs.classpath"/>
+		</javac>
+		
+		<!-- delete old algo jar if any -->
+		<delete file="${build_path}/${guidir}/${algodir}/${tspdir}/${algos_tsp_lib}"/>
+		
+		<!-- create algo jar -->
+		<jar destfile="${build_path}/${guidir}/${algodir}/${tspdir}/${algos_tsp_lib}">
+			<fileset dir="${build_path}/${guidir}/${algodir}/${tspdir}"/>
+			<fileset dir="${algos_tsp_path}" excludes="**/*.java"/>
+		</jar>
+	</target>
+	
+	<target name="algos_automata" depends="api">
+			<!-- compile algo files -->
+			<javac srcdir="${algos_automata_path}" destdir="${build_path}/${guidir}/${algodir}/${automatadir}" 
+				debug="${debug}" classpath="${build_path}/${apidir}/${apilib}"
+				debuglevel="source,lines,vars">
+				<classpath refid="libs.classpath"/>
+			</javac>
+			
+			<!-- delete old algo jar if any -->
+			<delete file="${build_path}/${guidir}/${algodir}/${automatadir}/${algos_automata_lib}"/>
+			
+			<!-- create algo jar -->
+			<jar destfile="${build_path}/${guidir}/${algodir}/${automatadir}/${algos_automata_lib}">
+				<fileset dir="${build_path}/${guidir}/${algodir}/${automatadir}"/>
+				<fileset dir="${algos_automata_path}" excludes="**/*.java"/>
+			</jar>
+		</target>
+	
+	<target name="pics" depends="init">
+		<!-- copy all pics to target dir -->
+		<copy todir="${build_path}/${guidir}/${picsdir}">
+			<fileset dir="${pics_path}"/>
+		</copy>
+	</target>
+	
+	<target name="docs" depends="init">
+		<!-- copy docs dir to target dir -->
+		<copy todir="${build_path}/${guidir}/${docsdir}">
+			<fileset dir="${docs_path}"/>
+		</copy>
+	</target>
+	
+	<target name="gui" depends="api, pics, docs">
+		<!-- copy api jar to gui -->
+		<copy file="${build_path}/${apidir}/${apilib}" todir="${build_path}/${guidir}/${libdir}/"/>
+		
+		<!-- copy swt jar to gui -->
+		<copy file="${libdir}/${swtlib}" todir="${build_path}/${guidir}/${libdir}"/>
+		
+		<!-- copy other libraries -->
+		<copy todir="${build_path}/${guidir}/${libdir}">
+			<path refid="libs.classpath"/>
+		</copy>
+		
+		<!-- compile gui files -->
+		<javac destdir="${build_path}/${guidir}/${guibin}" srcdir="${gui_path}" debug="${debug}"
+			debuglevel="source,lines,vars">
+			<classpath path="${build_path}/${guidir}/${libdir}/${apilib}"/>
+			<classpath path="${build_path}/${guidir}/${libdir}/${swtlib}"/>
+			<!-- other libraries -->
+			<classpath refid="libs.classpath"/>
+		</javac>
+		
+		<!-- create gui jar in gui dir -->
+		<jar destfile="${build_path}/${guidir}/${guilib}">
+			<fileset dir="${build_path}/${guidir}/${guibin}"/>
+			<fileset dir="${gui_path}" excludes="**/*.java"/>
+			<manifest>
+				<attribute name="Main-Class" value="hr.fer.zemris.ga_framework.Main"/>
+				<attribute name="Class-Path" value="${libdir}/${swtlib} ${libdir}/${apilib}
+					${classpath-string}"/>
+			</manifest>
+		</jar>
+	</target>
+	
+	<target name="all" depends="api, gui, algos_tsp, algos_automata">
+		<echo message="Build complete (debug is ${debug})."></echo>
+		<echo message="Detected libraries: ${classpath-string}"></echo>
+	</target>
+
+</project>
+
+

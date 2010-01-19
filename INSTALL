@@ -1,0 +1,31 @@
+
+
+--------------------------------------
+...:::Evolutionary Computing IDE:::...
+--------------------------------------
+
+
+
+Installation instructions
+-------------------------
+
+1) Prerequisites:
+- Java JDK 6
+- Apache ANT (tested with version 1.7.1)
+- for non-Win32 users - download the swt.jar file for your platform and replace the current swt.jar in the "lib" subdir
+
+Use a search engine of your choice to resolve the above dependencies.
+
+
+2) Compilation:
+Go to project root and write:
+
+ant -Ddebug=off
+
+If build is successful, write:
+
+ant clean
+
+After that, go to build/api subdir. The file "api.jar" is the archive needed to develop new algorithms.
+The application is located in the build/gui subdir. Use gui.sh or gui.bat to run it, or simply run gui.jar (using java -jar gui.jar).
+
